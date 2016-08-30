@@ -33,10 +33,46 @@ class ExtractAngularTestCase(unittest.TestCase):
         messages = list(extract_angular(buf, default_keys, [], {}))
         self.assertEqual([], messages)
 
-    def test_simple_string(self):
+    def test_gettext_value(self):
+        """Check we obtain multiple attributes
+        """
+        buf = StringIO('''<html><div attr1="{$ ::$root.i18n.gettext('hello world1') $}">hello world!</div></html>''')
+
+        messages = list(extract_angular(buf, [], [], {}))
+        self.assertEqual(
+            [
+                (1, u'gettext', 'hello world1', []),
+            ],
+            messages)
+
+    def test_pgettext_value(self):
+        """Check we obtain multiple attributes
+        """
+        buf = StringIO('''<html><div>{$ ::$root.i18n.pgettext('context', 'hello world') $}"</div></html>''')
+
+        messages = list(extract_angular(buf, [], [], {}))
+        self.assertEqual(
+            [
+                (1, u'gettext', 'hello world', []),
+            ],
+            messages)
+
+    def test_ngettext_value(self):
+        """Check we obtain multiple attributes
+        """
+        buf = StringIO('''<html><div>{$ ::$root.i18n.ngettext('hello world', 'hello worlds', 1) $}"</div></html>''')
+
+        messages = list(extract_angular(buf, [], [], {}))
+        self.assertEqual(
+            [
+                (1, u'ngettext', ('hello world', 'hello worlds'), []),
+            ],
+            messages)
+
+    def test_lineextraction(self):
         buf = StringIO(
-            """<html><translate>hello world!</translate>'
-            <div translate>hello world!</div></html>"""
+            """<html><a attribute="{$ ::$root.i18n.gettext('hello world!') $}">hello world!</a>'
+            <div>{$ ::$root.i18n.gettext('hello world!') $}</div></html>"""
         )
 
         messages = list(extract_angular(buf, default_keys, [], {}))
@@ -47,98 +83,15 @@ class ExtractAngularTestCase(unittest.TestCase):
             ],
             messages)
 
-    def test_attr_value(self):
-        """We should not translate tags that have translate as the value of an
-        attribute.
+    def test_multipleattr_values(self):
+        """Check we obtain multiple attributes
         """
-        buf = StringIO('<html><div id="translate">hello world!</div></html>')
-
-        messages = list(extract_angular(buf, [], [], {}))
-        self.assertEqual([], messages)
-
-    def test_attr_value_plus_directive(self):
-        """Unless they also have a translate directive.
-        """
-        buf = StringIO(
-            '<html><div id="translate" translate>hello world!</div></html>')
-
-        messages = list(extract_angular(buf, [], [], {}))
-        self.assertEqual([(1, 'gettext', 'hello world!', [])], messages)
-
-    def test_translate_tag(self):
-        buf = StringIO('<html><translate>hello world!</translate></html>')
-
-        messages = list(extract_angular(buf, [], [], {}))
-        self.assertEqual([(1, 'gettext', 'hello world!', [])], messages)
-
-    def test_plural_form(self):
-        buf = StringIO(
-            (
-                '<html><translate translate-plural="hello {$count$} worlds!">'
-                'hello one world!</translate></html>'
-            ))
+        buf = StringIO('''<html><div attr1="{$ ::$root.i18n.gettext('hello world1') $}" attr2="{$ ::$root.i18n.gettext('hello world2') $}">hello world!</div></html>''')
 
         messages = list(extract_angular(buf, [], [], {}))
         self.assertEqual(
             [
-                (1, 'ngettext',
-                 ('hello one world!',
-                  'hello {$count$} worlds!'
-                  ),
-                 [])
-            ], messages)
-
-    def test_translate_tag_comments(self):
-        buf = StringIO(
-            '<html><translate translate-comment='
-            '"What a beautiful world">hello world!</translate></html>')
-
-        messages = list(extract_angular(buf, [], [], {}))
-        self.assertEqual(
-            [
-                (1, 'gettext', 'hello world!', ['What a beautiful world'])
-            ],
-            messages)
-
-    def test_comments(self):
-        buf = StringIO(
-            '<html><div translate translate-comment='
-            '"What a beautiful world">hello world!</div></html>')
-
-        messages = list(extract_angular(buf, [], [], {}))
-        self.assertEqual(
-            [
-                (1, 'gettext', 'hello world!', ['What a beautiful world'])
-            ],
-            messages)
-
-    def test_multiple_comments(self):
-        buf = StringIO(
-            '<html><translate '
-            'translate-comment="What a beautiful world"'
-            'translate-comment="Another comment"'
-            '>hello world!</translate></html>')
-
-        messages = list(extract_angular(buf, [], [], {}))
-        self.assertEqual(
-            [
-                (1, 'gettext', 'hello world!',
-                 [
-                     'What a beautiful world',
-                     'Another comment'
-                 ])
-            ],
-            messages)
-
-    def test_nested_tags(self):
-        buf = StringIO(
-            '<html><translate '
-            '>hello <b>Beautiful</b> world!</translate></html>')
-
-        messages = list(extract_angular(buf, [], [], {}))
-        self.assertEqual(
-            [
-                (1, 'gettext', 'hello <b>Beautiful</b> world!',
-                 [ ])
+                (1, u'gettext', 'hello world1', []),
+                (1, u'gettext', 'hello world2', [])
             ],
             messages)
