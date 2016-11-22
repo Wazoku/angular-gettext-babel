@@ -36,8 +36,10 @@ class AngularGettextHTMLParser(HTMLParser):
 
     def find_matches(self, string):
         for match in self._find_matches(string):
-            if type(match) == tuple:
+            if type(match) == tuple and len(match) == 2:
                 self._add_plural_string(match[0], match[1])
+            elif type(match) == tuple and len(match) == 3:
+                self._add_context_string(match[0], match[1])
             else:
                 self._add_string(match)
 
@@ -48,9 +50,9 @@ class AngularGettextHTMLParser(HTMLParser):
         match = re.findall(r'\.gettext\(["\'](.*?)["\']\)', string)
         if match:
             matches.extend(match)
-        match = re.findall(r'\.pgettext\(["\'].*?["\'], +["\'](.*?)["\']\)', string)
+        match = re.findall(r'\.pgettext\(["\'](.*?)["\'], +["\'](.*?)["\']\)', string)
         if match:
-            matches.extend(match)
+            matches.extend([match[0] + ('+context',)])
         match = re.findall(
             r'\.ngettext\(["\'](.*?)["\'], +["\'](.*?)["\'],[^)]*\)', string)
         if match:
@@ -59,20 +61,23 @@ class AngularGettextHTMLParser(HTMLParser):
 
     def _add_string(self, singular, comments=''):
         messages = interpolate(singular)
-        line = self.getpos()[0]
-        func_name = u'gettext'
-        if not comments:
-            comments = []
-        self.strings.append(
-            (line, func_name, messages, comments)
-        )
+        self._add_msg(u'gettext', messages, comments)
 
     def _add_plural_string(self, singular, plural_form, comments=''):
         messages = (
             interpolate(singular),
             interpolate(plural_form)
         )
-        func_name = u'ngettext'
+        self._add_msg(u'ngettext', messages, comments)
+
+    def _add_context_string(self, singular, context, comments=''):
+        messages = (
+            interpolate(singular),
+            interpolate(context)
+        )
+        self._add_msg(u'pgettext', messages, comments)
+
+    def _add_msg(self, func_name, messages, comments):
         line = self.getpos()[0]
         if not comments:
             comments = []
